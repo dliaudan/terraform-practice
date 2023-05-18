@@ -119,7 +119,8 @@ resource "aws_instance" "web-server-test" {
 resource "aws_eip" "elasticip" {
   instance = aws_instance.web-server-test.id
 }
-
+#showing elastic ip for me in cli
 output "EIP" {
     value = aws_eip.elasticip.public_ip
 }
+#FINISH

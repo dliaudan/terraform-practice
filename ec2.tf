@@ -123,3 +123,4 @@ resource "aws_eip" "elasticip" {
 output "EIP" {
     value = aws_eip.elasticip.public_ip
 }
+#FINISH

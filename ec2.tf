@@ -30,7 +30,7 @@ resource "aws_subnet" "main" {
   cidr_block = "10.0.11.0/24"
 
   tags = {
-    Name = "Main_subnet"
+    Name = "terraform"
   }
 }
 
@@ -39,7 +39,7 @@ resource "aws_internet_gateway" "GW-for-TF" {
   vpc_id = aws_vpc.main_for_terraform.id
 
   tags = {
-    Name = "main"
+    Name = "terraform"
   }
 }
 
@@ -109,10 +109,9 @@ resource "aws_instance" "web-server-test" {
   vpc_security_group_ids = [aws_security_group.terraform_default_SG.id]
   key_name               = "keypairssh" 
   user_data              = file("script-docker-install-rhel.sh")
-  #here need to add user data bash script to install docker
-
+  
   tags = {
-    Name = "training_instance"
+    Name = "terraform"
   }
 }
 

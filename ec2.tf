@@ -108,6 +108,7 @@ resource "aws_instance" "web-server-test" {
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.terraform_default_SG.id]
   key_name               = "keypairssh" 
+  user_data              = file("script-docker-install-rhel.sh")
   #here need to add user data bash script to install docker
 
   tags = {

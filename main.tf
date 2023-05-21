@@ -28,9 +28,10 @@ resource "aws_vpc" "main_for_terraform" {
 resource "aws_subnet" "main" {
   vpc_id     = aws_vpc.main_for_terraform.id
   cidr_block = "10.0.11.0/24"
+  availability_zone = "eu-north-1a"
 
   tags = {
-    Name = "Main_subnet"
+    Name = "terraform"
   }
 }
 
@@ -39,7 +40,7 @@ resource "aws_internet_gateway" "GW-for-TF" {
   vpc_id = aws_vpc.main_for_terraform.id
 
   tags = {
-    Name = "main"
+    Name = "terraform"
   }
 }
 
@@ -108,11 +109,25 @@ resource "aws_instance" "web-server-test" {
   subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.terraform_default_SG.id]
   key_name               = "keypairssh" 
-  #here need to add user data bash script to install docker
-
+  user_data              = file("script-docker-install-rhel.sh")
+  
   tags = {
-    Name = "training_instance"
+    Name = "terraform"
   }
+}
+
+#creating EBS resources (more RAM) and attach it to the EC2 instance
+resource "aws_ebs_volume" "aws_ebs_volume_terraform" {
+  availability_zone     = "eu-north-1a"
+  size                  = 8 #8 GiB RAM
+  type                  = "gp2" #general purpose
+
+}
+
+resource "aws_volume_attachment" "attachment_for_ebs_terraform" {
+  device_name           = "/dev/xvdh"
+  volume_id             = "${aws_ebs_volume.aws_ebs_volume_terraform.id}"
+  instance_id           = "${aws_instance.web-server-test.id}" 
 }
 
 #create elastic IP for EC2 instance

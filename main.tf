@@ -3,7 +3,7 @@
 #2. security group which allows ingress ports 22,80,443
 #3. has his own ssh keypair
 #4. shows public ip 
-#5. can automatically install docker (in process)
+#5. can automatically install docker 
 
 
 
@@ -134,6 +134,7 @@ resource "aws_volume_attachment" "attachment_for_ebs_terraform" {
 resource "aws_eip" "elasticip" {
   instance = aws_instance.web-server-test.id
 }
+
 #showing elastic ip for me in cli
 output "EIP" {
     value = aws_eip.elasticip.public_ip

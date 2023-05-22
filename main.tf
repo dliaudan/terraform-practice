@@ -120,7 +120,7 @@ resource "aws_instance" "web-server-test" {
 #creating EBS resources (more RAM) and attach it to the EC2 instance
 resource "aws_ebs_volume" "aws_ebs_volume_terraform" {
   availability_zone     = "eu-north-1a"
-  size                  = 8 #8 GiB RAM
+  size                  = 8 #8 GiB volume of EBS
   type                  = "gp2" #general purpose
 
 }

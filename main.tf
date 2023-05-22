@@ -7,12 +7,13 @@
 
 
 
-#configure region
+#configure region, also configure access keys for flexible code usage
 provider "aws" {
   region     = "eu-north-1"
-  profile    = "admin"
+  access_key = var.access_key
+	secret_key = var.secret_access_key
 }
-#how to change profile for different users?
+
 
 #create vpc for ec2
 resource "aws_vpc" "main_for_terraform" {

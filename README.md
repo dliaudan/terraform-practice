@@ -2,7 +2,8 @@
 
 # Important notes
 
-- To use this code, you need to enter your AWS access key credentials into variables file (see comments in this file where to enter it)
+- To use this code, please clone this repo to your account
+- In addition, you need to enter your AWS access key credentials into variables file (see comments in this file where to enter it)
 
 # Purpose of this project
 

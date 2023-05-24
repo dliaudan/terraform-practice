@@ -7,10 +7,11 @@
 
 
 
-#configure region
+#configure region, also configure access keys for flexible code usage
 provider "aws" {
   region     = "eu-north-1"
-  profile    = "admin"
+  access_key = var.access_key
+	secret_key = var.secret_access_key
 }
 
 
@@ -68,7 +69,7 @@ resource "aws_security_group" "terraform_default_SG" {
   vpc_id      = aws_vpc.main_for_terraform.id
 #each ingress means one ingress rule
   ingress {
-    description      = "HTTPS from VPC"
+    description      = "HTTPS from EC2 instance"
     from_port        = 443
     to_port          = 443
     protocol         = "tcp"
@@ -76,7 +77,7 @@ resource "aws_security_group" "terraform_default_SG" {
   }
 
   ingress {
-    description      = "SSH from VPC"
+    description      = "SSH from EC2 instance"
     from_port        = 22
     to_port          = 22
     protocol         = "tcp"
@@ -84,7 +85,7 @@ resource "aws_security_group" "terraform_default_SG" {
   }
 
   ingress {
-    description      = "HTTP from VPC"
+    description      = "HTTP from EC2 instance"
     from_port        = 80
     to_port          = 80
     protocol         = "tcp"
@@ -119,7 +120,7 @@ resource "aws_instance" "web-server-test" {
 #creating EBS resources (more RAM) and attach it to the EC2 instance
 resource "aws_ebs_volume" "aws_ebs_volume_terraform" {
   availability_zone     = "eu-north-1a"
-  size                  = 8 #8 GiB RAM
+  size                  = 8 #8 GiB volume of EBS
   type                  = "gp2" #general purpose
 
 }
@@ -139,4 +140,3 @@ resource "aws_eip" "elasticip" {
 output "EIP" {
     value = aws_eip.elasticip.public_ip
 }
-#FINISH

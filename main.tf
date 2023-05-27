@@ -7,11 +7,10 @@
 
 
 
-#configure region, also configure access keys for flexible code usage
+#configure region, also configure access keys and configs from respective files for flexible code usage
 provider "aws" {
-  region     = "eu-north-1"
-  access_key = var.access_key
-	secret_key = var.secret_access_key
+  shared_config_files      = ["C:/Users/dliaudan/.aws/config"]
+  shared_credentials_files = ["C:/Users/dliaudan/.aws/credentials"]
 }
 
 

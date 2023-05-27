@@ -36,6 +36,4 @@ terraform.rc
 
 
 variables.tf
-variables.tf
 *.tfvars
-terraform.tfvars

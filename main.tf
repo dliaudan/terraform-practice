@@ -10,8 +10,7 @@
 #configure region, also configure access keys for flexible code usage
 provider "aws" {
   region     = "eu-north-1"
-  access_key = var.access_key
-	secret_key = var.secret_access_key
+  allowed_account_ids = var.allowed_account_ids
 }
 
 

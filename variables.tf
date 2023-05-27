@@ -4,12 +4,12 @@
 variable "access_key" {
 	description = "Access Key for AWS"
 	type = string
-	default = "AKIAZRCZAXBGM6XZIFWV" #insert here your access key instead of XXX
+	default = "XXX" #insert here your access key instead of XXX
 }
 
 variable "secret_access_key" {
 	description = "Secret access key for AWS"
 	type = string
-	default = "ViRSOS0RNiZTah/CPXf8+QoPyNlgxqUeW00CsoEP" #insert here your secret access key instead of XXX
+	default = "XXX" #insert here your secret access key instead of XXX
 }
 

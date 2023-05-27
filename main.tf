@@ -7,16 +7,15 @@
 
 
 
-#configure region, also configure access keys and configs from respective files for flexible code usage
+#configure region, also configure access keys and configs from respective for flexible code usage
 provider "aws" {
-  shared_config_files      = ["C:/Users/dliaudan/.aws/config"]
-  shared_credentials_files = ["C:/Users/dliaudan/.aws/credentials"]
+  profile = "default"
 }
 
 
 #create vpc for ec2
 resource "aws_vpc" "this" {
-  cidr_block       = "10.0.0.0/16"
+  cidr_block       = var.cidr
   instance_tenancy = "default"
 
   tags = {
@@ -27,8 +26,8 @@ resource "aws_vpc" "this" {
 #create subnet for vpc
 resource "aws_subnet" "this" {
   vpc_id            = aws_vpc.this.id
-  cidr_block        = "10.0.11.0/24"
-  availability_zone = "eu-north-1a"
+  cidr_block        = var.cidr_block
+  availability_zone = var.azs
 
   tags = {
     Name = "terraform"

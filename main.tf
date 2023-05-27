@@ -104,25 +104,23 @@ resource "aws_security_group" "this" {
 
 #creating EC2 instance 
 resource "aws_instance" "web_server_test" {
-  ami                         = "ami-0a6351192ce04d50c"
-  instance_type               = "t3.micro"
+  ami                         = var.ami_type
+  instance_type               = var.instance_type
   subnet_id                   = aws_subnet.this.id
   vpc_security_group_ids      = [aws_security_group.this.id]
-  key_name                    = "keypairssh" 
+  key_name                    = var.key_pair_ssh 
   user_data                   = file("script-docker-install-rhel.sh")
   associate_public_ip_address = true
 
-
-  
   tags = {
-    Name = "terraform"
+    Name = "Terraform server"
   }
 }
 
 #creating EBS resources and attach it to the EC2 instance
 resource "aws_ebs_volume" "this" {
-  availability_zone     = "eu-north-1a"
-  size                  = 8 #8 GiB volume of EBS
+  availability_zone     = var.azs
+  size                  = var.ebs_size 
   type                  = "gp2" #general purpose
 }
 
@@ -133,8 +131,3 @@ resource "aws_volume_attachment" "this" {
   instance_id           = "${aws_instance.web_server_test.id}" 
 }
 
-#showing elastic ip for me in cli
-output "public_ip" {
-    description         = "Gives output of public IP for EC2 instance"
-    value               = aws_instance.web_server_test.public_ip
-}

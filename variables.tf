@@ -1,8 +1,8 @@
 #this file for future variables during terraform restructuring
 
-#========================================================================
-#							Variables for VPC
-#========================================================================
+#====================
+# Variables for VPC #
+#====================
 variable "cidr" {
   description = "The CIDR block for the VPC. Default value is a valid CIDR"
   type        = string
@@ -21,9 +21,9 @@ variable "azs" {
   default     = "eu-north-1a"
 }
 
-#========================================================================
-#							Variables for EC2 and EBS
-#========================================================================
+#============================
+# Variables for EC2 and EBS #
+#============================
 
 variable "ami_type" {
   description = "The ami type of EC2 instance. By default, it is an RHEL Linux distribution"

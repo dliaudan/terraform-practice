@@ -17,7 +17,7 @@ provider "aws" {
 
 #create vpc for ec2
 resource "aws_vpc" "this" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block       = "10.0.0.0/16"
   instance_tenancy = "default"
 
   tags = {
@@ -27,8 +27,8 @@ resource "aws_vpc" "this" {
 
 #create subnet for vpc
 resource "aws_subnet" "this" {
-  vpc_id     = aws_vpc.this.id
-  cidr_block = "10.0.11.0/24"
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = "10.0.11.0/24"
   availability_zone = "eu-north-1a"
 
   tags = {
@@ -50,8 +50,8 @@ resource "aws_route_table" "this" {
   vpc_id = aws_vpc.this.id
 
   route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.this.id
+    cidr_block  = "0.0.0.0/0"
+    gateway_id  = aws_internet_gateway.this.id
   }
 #IMPORTANT: local routes created by default. No need to configure here.
 }
@@ -139,7 +139,7 @@ resource "aws_eip" "this" {
 }
 
 #showing elastic ip for me in cli
-output "elastic_ip_output" {
-    description = "Gives output of elastic IP for EC2 instance"
-    value = aws_eip.this.public_ip
+output "eip" {
+    description         = "Gives output of elastic IP for EC2 instance"
+    value               = aws_eip.this.public_ip
 }

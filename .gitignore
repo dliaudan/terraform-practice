@@ -34,5 +34,4 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-# Ignore variables file
-variables.tf
+

@@ -21,4 +21,4 @@ instance_type = "t3.micro"
 
 key_pair_ssh = "keypairssh"
 
-ebs_size = 10
+ebs_size = 8

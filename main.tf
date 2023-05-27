@@ -10,7 +10,8 @@
 #configure region, also configure access keys for flexible code usage
 provider "aws" {
   region     = "eu-north-1"
-  allowed_account_ids = var.allowed_account_ids
+  access_key = var.access_key
+	secret_key = var.secret_access_key
 }
 
 
@@ -105,24 +106,26 @@ resource "aws_security_group" "this" {
 
 #creating EC2 instance 
 resource "aws_instance" "web_server_test" {
-  ami                    = "ami-0a6351192ce04d50c"
-  instance_type          = "t3.micro"
-  subnet_id              = aws_subnet.this.id
-  vpc_security_group_ids = [aws_security_group.this.id]
-  key_name               = "keypairssh" 
-  user_data              = file("script-docker-install-rhel.sh")
+  ami                         = "ami-0a6351192ce04d50c"
+  instance_type               = "t3.micro"
+  subnet_id                   = aws_subnet.this.id
+  vpc_security_group_ids      = [aws_security_group.this.id]
+  key_name                    = "keypairssh" 
+  user_data                   = file("script-docker-install-rhel.sh")
+  associate_public_ip_address = true
+
+
   
   tags = {
     Name = "terraform"
   }
 }
 
-#creating EBS resources (more RAM) and attach it to the EC2 instance
+#creating EBS resources and attach it to the EC2 instance
 resource "aws_ebs_volume" "this" {
   availability_zone     = "eu-north-1a"
   size                  = 8 #8 GiB volume of EBS
   type                  = "gp2" #general purpose
-
 }
 
 #creating attachment for connecting EC2 instance with EBS volume
@@ -132,13 +135,8 @@ resource "aws_volume_attachment" "this" {
   instance_id           = "${aws_instance.web_server_test.id}" 
 }
 
-#create elastic IP for EC2 instance
-resource "aws_eip" "this" {
-  instance = aws_instance.web_server_test.id
-}
-
 #showing elastic ip for me in cli
-output "eip" {
-    description         = "Gives output of elastic IP for EC2 instance"
-    value               = aws_eip.this.public_ip
+output "public_ip" {
+    description         = "Gives output of public IP for EC2 instance"
+    value               = aws_instance.web_server_test.public_ip
 }

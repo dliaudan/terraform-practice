@@ -12,6 +12,14 @@ provider "aws" {
   profile = "default"
 }
 
+#this data gives awss user identity. From this data you can give an output of account ID, ARN of user ID
+data "aws_caller_identity" "this" {
+
+}
+
+data "aws_secretsmanager_secret" "this" {
+  name = aws_secretsmanager_secret.this.id
+}
 
 #create vpc for ec2
 resource "aws_vpc" "this" {
@@ -129,5 +137,35 @@ resource "aws_volume_attachment" "this" {
   device_name           = "/dev/xvdh"
   volume_id             = "${aws_ebs_volume.this.id}"
   instance_id           = "${aws_instance.web_server_test.id}" 
+}
+
+#creating secret random password
+resource "random_password" "this" {
+  length  = 16
+  special = true
+  numeric = true
+  upper   = true
+  lower   = true
+}
+
+#creating empty secret resource
+resource "aws_secretsmanager_secret" "this" {
+  name        = "secret_password_test"
+  description = "Secret password for future purposes"
+  recovery_window_in_days = 0
+  tags = {
+    Name      = "secret_pass"
+  }
+}
+
+#binding random password with secret
+resource "aws_secretsmanager_secret_version" "this" {
+  secret_id     = aws_secretsmanager_secret.this.id 
+    secret_string = <<EOF
+  {
+    "username":"adminDB",
+    "password":"${random_password.this.result}"
+  }
+  EOF
 }
 

@@ -7,3 +7,8 @@ output "ec2_instance_name" {
     description         = "Gives output of ec2 name"
     value               = aws_instance.web_server_test.tags.Name
 }
+
+output "account_id" {
+  description           = "Gives output of current account ID"
+  value                 = data.aws_caller_identity.this.user_id
+}

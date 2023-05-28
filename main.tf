@@ -12,6 +12,10 @@ provider "aws" {
   profile = "default"
 }
 
+#this data gives awss user identity. From this data you can give an output of account ID, ARN of user ID
+data "aws_caller_identity" "this" {
+
+}
 
 #create vpc for ec2
 resource "aws_vpc" "this" {
@@ -142,11 +146,11 @@ resource "random_password" "this" {
 
 #creating empty secret resource
 resource "aws_secretsmanager_secret" "this" {
-  name        = "secret_password"
+  name        = "secret_password_test"
   description = "Secret password for future purposes"
   recovery_window_in_days = 0
   tags = {
-    Name        = "secret_pass"
+    Name      = "secret_pass"
   }
 }
 

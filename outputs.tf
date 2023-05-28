@@ -12,3 +12,8 @@ output "account_id" {
   description           = "Gives output of current account ID"
   value                 = data.aws_caller_identity.this.user_id
 }
+
+output "secret_name" {
+  description           = "Name of the secret"
+  value                 = data.aws_secretsmanager_secret.this.name
+}

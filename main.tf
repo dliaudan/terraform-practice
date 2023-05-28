@@ -17,6 +17,10 @@ data "aws_caller_identity" "this" {
 
 }
 
+data "aws_secretsmanager_secret" "this" {
+  name = aws_secretsmanager_secret.this.id
+}
+
 #create vpc for ec2
 resource "aws_vpc" "this" {
   cidr_block       = var.cidr
@@ -157,5 +161,11 @@ resource "aws_secretsmanager_secret" "this" {
 #binding random password with secret
 resource "aws_secretsmanager_secret_version" "this" {
   secret_id     = aws_secretsmanager_secret.this.id 
-  secret_string = random_password.this.result
+    secret_string = <<EOF
+  {
+    "username":"adminDB",
+    "password":"${random_password.this.result}"
+  }
+  EOF
 }
+

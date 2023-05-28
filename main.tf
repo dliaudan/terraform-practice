@@ -131,3 +131,27 @@ resource "aws_volume_attachment" "this" {
   instance_id           = "${aws_instance.web_server_test.id}" 
 }
 
+#creating secret random password
+resource "random_password" "this" {
+  length  = 16
+  special = true
+  numeric = true
+  upper   = true
+  lower   = true
+}
+
+#creating empty secret resource
+resource "aws_secretsmanager_secret" "this" {
+  name        = "secret_password"
+  description = "Secret password for future purposes"
+  recovery_window_in_days = 0
+  tags = {
+    Name        = "secret_pass"
+  }
+}
+
+#binding random password with secret
+resource "aws_secretsmanager_secret_version" "this" {
+  secret_id     = aws_secretsmanager_secret.this.id 
+  secret_string = random_password.this.result
+}

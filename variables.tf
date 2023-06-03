@@ -27,24 +27,6 @@ variable "azs" {
 # Variables for EC2 and EBS #
 #============================
 
-variable "ami_type" {
-  description = "The ami type of EC2 instance. By default, you need to specify it in your variables.tfvars"
-  type        = string
-  default     = ""
-}
-
-variable "instance_type" {
-  description = "Instance type. By default, you need to specify it in your variables.tfvars"
-  type        = string
-  default     = ""
-}
-
-variable "key_pair_ssh" {
-  description = "Specify key pair for SSH authentication to EC2 instance. By default, you need to specify it in your variables.tfvars"
-  type        = string
-  default     = ""
-}
-
 variable "ebs_size" {
   description = "EBS volume size. By default, you need to specify it in your variables.tfvars"
   type        = number

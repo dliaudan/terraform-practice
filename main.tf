@@ -69,17 +69,19 @@ resource "aws_route_table_association" "this" {
 }
 
 #creating security group
-module "Security_group" {
-  source      = ".//modules/Security_group"
-  vpc_id      = "${aws_vpc.this.id}"
-  name_of_sg  = "Basic security group"
+module "Security_group_EC2" {
+  source          = ".//modules/Security_group"
+  vpc_id          = "${aws_vpc.this.id}"
+  name_of_sg      = "Basic security group"
+  description     = "Allows ports 22, 80 and 443" 
+  inbound_ports   = [22,80,443]
 }
 
 #creating EC2 instance 
 module "module_server_test" {
   source                    = ".//modules/ec2instance"
   instance_subnet           = "${aws_subnet.this.id}"
-  security_group_id         = "${[module.Security_group.Security_group_id]}"
+  security_group_id         = "${[module.Security_group_EC2.Security_group_id]}"
   number_of_instances       = 2
   instance_name             = "Webserver"
   script_file               = "script-docker-install-rhel.sh"
@@ -110,11 +112,11 @@ resource "random_password" "this" {
 
 #creating empty secret resource
 resource "aws_secretsmanager_secret" "this" {
-  name        = "secret_password_test"
-  description = "Secret password for future purposes"
+  name                    = "secret_password_test"
+  description             = "Secret password for future purposes"
   recovery_window_in_days = 0
   tags = {
-    Name      = "secret_pass"
+    Name                  = "secret_pass"
   }
 }
 
@@ -129,3 +131,40 @@ resource "aws_secretsmanager_secret_version" "this" {
   EOF
 }
 
+module "Security_group_ELB" {
+  source          = ".//modules/Security_group"
+  vpc_id          = "${aws_vpc.this.id}"
+  name_of_sg      = "Basic security group for ELB"
+  description     = "Allows ports 80 and 443" 
+  inbound_ports   = [80,443]
+}
+
+#creating classic load balancer
+resource "aws_elb" "this" {
+  name                      = "ELB"
+  subnets                   = [aws_subnet.this.id]
+  source_security_group     = "Basic security group for ELB"
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    target              = "HTTP:80/"
+    interval            = 30
+  }
+
+  instances                   = [module.module_server_test.ec2_ids[0],module.module_server_test.ec2_ids[1]]
+  idle_timeout                = 400
+  connection_draining         = true
+  connection_draining_timeout = 400
+
+  tags = {
+    Name = "Classic load balancer"
+  }
+}

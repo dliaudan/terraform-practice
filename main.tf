@@ -69,52 +69,17 @@ resource "aws_route_table_association" "this" {
 }
 
 #creating security group
-resource "aws_security_group" "this" {
-  name        = "terraform_security_group"
-  description = "Allow 22, 80, 443 ports"
-  vpc_id      = aws_vpc.this.id
-#each ingress means one ingress rule
-  ingress {
-    description      = "HTTPS from EC2 instance"
-    from_port        = 443
-    to_port          = 443
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description      = "SSH from EC2 instance"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["188.163.81.21/32"] #my ip address
-  }
-
-  ingress {
-    description      = "HTTP from EC2 instance"
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "terraform"
-  }
+module "Security_group" {
+  source      = ".//modules/Security_group"
+  vpc_id      = "${aws_vpc.this.id}"
+  name_of_sg  = "Basic security group"
 }
 
 #creating EC2 instance 
 module "module_server_test" {
   source                    = ".//modules/ec2instance"
   instance_subnet           = "${aws_subnet.this.id}"
-  security_group_id         = "${[aws_security_group.this.id]}"
+  security_group_id         = "${[module.Security_group.Security_group_id]}"
   number_of_instances       = 2
   instance_name             = "Webserver"
   script_file               = "script-docker-install-rhel.sh"

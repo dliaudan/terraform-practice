@@ -111,18 +111,13 @@ resource "aws_security_group" "this" {
 }
 
 #creating EC2 instance 
-resource "aws_instance" "web_server_test" {
-  ami                         = var.ami_type
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.this.id
-  vpc_security_group_ids      = [aws_security_group.this.id]
-  key_name                    = var.key_pair_ssh 
-  user_data                   = file("script-docker-install-rhel.sh")
-  associate_public_ip_address = true
-
-  tags = {
-    Name = "Terraform server"
-  }
+module "module_server_test" {
+  source                    = ".//modules/ec2instance"
+  instance_subnet           = "${aws_subnet.this.id}"
+  security_group_id         = "${[aws_security_group.this.id]}"
+  number_of_instances       = 2
+  instance_name             = "Webserver"
+  script_file               = "script-docker-install-rhel.sh"
 }
 
 #creating EBS resources and attach it to the EC2 instance
@@ -136,7 +131,7 @@ resource "aws_ebs_volume" "this" {
 resource "aws_volume_attachment" "this" {
   device_name           = "/dev/xvdh"
   volume_id             = "${aws_ebs_volume.this.id}"
-  instance_id           = "${aws_instance.web_server_test.id}" 
+  instance_id           = module.module_server_test.ec2_ids[0] 
 }
 
 #creating secret random password

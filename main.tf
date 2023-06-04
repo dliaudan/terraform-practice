@@ -101,19 +101,17 @@ resource "aws_iam_policy" "this" {
 resource "aws_iam_role" "this" {
   name = "ec2_instance_sm_role_terraform"
 
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
   assume_role_policy = jsonencode({
     "Version": "2012-10-17",
-    "Statement": [
+    "Statement": [ #statement where rule is defined for allowing ec2 instance service use this role
         {
-            "Effect": "Allow", #action related to assuming role
-            "Action": [
-                "sts:AssumeRole"
+            "Effect": "Allow", #in effect specify wether deny or allow action
+            "Action": [  #specify action that will be allowed or denied
+                "sts:AssumeRole" #action is assuming role
             ],
-            "Principal": { #for whom this service will be assume
-                "Service": [
-                    "ec2.amazonaws.com"
+            "Principal": { #fspecify for whom permission will be granted
+                "Service": [ #define which services will be impacted for assuming (also here can be accounts)
+                    "ec2.amazonaws.com" #especially assuming this role is allowed for ec2 instances
                 ]
             }
         }

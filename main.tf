@@ -77,6 +77,107 @@ module "Security_group_EC2" {
   inbound_ports   = [22,80,443]
 }
 
+#creating policy for instance profile (access to secret manager)
+resource "aws_iam_policy" "this" {
+  name               = "EC2_role_for_SM"
+  path               = "/"
+  description        = "Policy for read/write data on secret manager (SM)" 
+  policy             = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "secretsmanager:*",
+                "cloudformation:CreateChangeSet",
+                "cloudformation:DescribeChangeSet",
+                "cloudformation:DescribeStackResource",
+                "cloudformation:DescribeStacks",
+                "cloudformation:ExecuteChangeSet",
+                "ec2:DescribeSecurityGroups",
+                "ec2:DescribeSubnets",
+                "ec2:DescribeVpcs",
+                "kms:DescribeKey",
+                "kms:ListAliases",
+                "kms:ListKeys",
+                "lambda:ListFunctions",
+                "rds:DescribeDBClusters",
+                "rds:DescribeDBInstances",
+                "redshift:DescribeClusters",
+                "tag:GetResources"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        },
+        {
+            "Action": [
+                "lambda:AddPermission",
+                "lambda:CreateFunction",
+                "lambda:GetFunction",
+                "lambda:InvokeFunction",
+                "lambda:UpdateFunctionConfiguration"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:lambda:*:*:function:SecretsManager*"
+        },
+        {
+            "Action": [
+                "serverlessrepo:CreateCloudFormationChangeSet",
+                "serverlessrepo:GetApplication"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:serverlessrepo:*:*:applications/SecretsManager*"
+        },
+        {
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Effect": "Allow",
+            "Resource": [
+                "arn:aws:s3:::awsserverlessrepo-changesets*",
+                "arn:aws:s3:::secrets-manager-rotation-apps-*/*"
+            ]
+        }
+    ]
+}
+
+  )
+}
+#create appropriate role for ec2 instance
+resource "aws_iam_role" "this" {
+  name = "ec2_instance_sm_role_terraform"
+
+  # Terraform's "jsonencode" function converts a
+  # Terraform expression result to valid JSON syntax.
+  assume_role_policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "sts:AssumeRole"
+            ],
+            "Principal": {
+                "Service": [
+                    "ec2.amazonaws.com"
+                ]
+            }
+        }
+    ]
+})
+}
+
+#unite iam role and policy
+resource "aws_iam_policy_attachment" "this" {
+  name       = "ec2_attachment_SM"
+  roles      = [aws_iam_role.this.name]
+  policy_arn = aws_iam_policy.this.arn
+}
+
+resource "aws_iam_instance_profile" "this" {
+  name = "ec2_sm_profile"
+  role = aws_iam_role.this.name
+}
+
 #creating EC2 instance 
 module "module_server_test" {
   source                    = ".//modules/ec2instance"
@@ -84,6 +185,7 @@ module "module_server_test" {
   security_group_id         = "${[module.Security_group_EC2.Security_group_id]}"
   number_of_instances       = 2
   instance_name             = "Webserver"
+  instance_profile          = "${aws_iam_instance_profile.this.name}" 
   script_file               = "script-docker-install-rhel.sh"
 }
 

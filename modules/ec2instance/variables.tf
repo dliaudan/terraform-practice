@@ -51,3 +51,9 @@ variable "script_file" {
  type        = string
  default     = ""
 }
+
+variable "instance_profile" {
+  description = "Define instance profile"
+  type        = string
+  default     = ""
+}

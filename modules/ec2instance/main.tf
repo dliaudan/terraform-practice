@@ -7,6 +7,7 @@ resource "aws_instance" "this" {
   key_name                    = var.key_pair_ssh 
   user_data                   = file("${var.script_file}")
   count                       = var.number_of_instances
+  iam_instance_profile        = var.instance_profile 
   associate_public_ip_address = true
 
   tags = {

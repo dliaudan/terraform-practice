@@ -16,3 +16,4 @@ output "ec2_ids" {
     description         = "Gives a names of instance servers"
     value               = aws_instance.this[*].id
 }
+

@@ -69,7 +69,7 @@ resource "aws_route_table_association" "this" {
 }
 
 #creating security group
-module "Security_group_EC2" {
+module "security_group_ec2" {
   source          = ".//modules/Security_group"
   vpc_id          = "${aws_vpc.this.id}"
   name_of_sg      = "Basic security group"
@@ -87,55 +87,10 @@ resource "aws_iam_policy" "this" {
     "Statement": [
         {
             "Action": [
-                "secretsmanager:*",
-                "cloudformation:CreateChangeSet",
-                "cloudformation:DescribeChangeSet",
-                "cloudformation:DescribeStackResource",
-                "cloudformation:DescribeStacks",
-                "cloudformation:ExecuteChangeSet",
-                "ec2:DescribeSecurityGroups",
-                "ec2:DescribeSubnets",
-                "ec2:DescribeVpcs",
-                "kms:DescribeKey",
-                "kms:ListAliases",
-                "kms:ListKeys",
-                "lambda:ListFunctions",
-                "rds:DescribeDBClusters",
-                "rds:DescribeDBInstances",
-                "redshift:DescribeClusters",
-                "tag:GetResources"
+                "secretsmanager:*"
             ],
             "Effect": "Allow",
             "Resource": "*"
-        },
-        {
-            "Action": [
-                "lambda:AddPermission",
-                "lambda:CreateFunction",
-                "lambda:GetFunction",
-                "lambda:InvokeFunction",
-                "lambda:UpdateFunctionConfiguration"
-            ],
-            "Effect": "Allow",
-            "Resource": "arn:aws:lambda:*:*:function:SecretsManager*"
-        },
-        {
-            "Action": [
-                "serverlessrepo:CreateCloudFormationChangeSet",
-                "serverlessrepo:GetApplication"
-            ],
-            "Effect": "Allow",
-            "Resource": "arn:aws:serverlessrepo:*:*:applications/SecretsManager*"
-        },
-        {
-            "Action": [
-                "s3:GetObject"
-            ],
-            "Effect": "Allow",
-            "Resource": [
-                "arn:aws:s3:::awsserverlessrepo-changesets*",
-                "arn:aws:s3:::secrets-manager-rotation-apps-*/*"
-            ]
         }
     ]
 }
@@ -152,18 +107,18 @@ resource "aws_iam_role" "this" {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Effect": "Allow",
+            "Effect": "Allow", #action related to assuming role
             "Action": [
                 "sts:AssumeRole"
             ],
-            "Principal": {
+            "Principal": { #for whom this service will be assume
                 "Service": [
                     "ec2.amazonaws.com"
                 ]
             }
         }
     ]
-})
+}) #assume role defines for which subjects (accounts or instances) this role can be applied
 }
 
 #unite iam role and policy
@@ -183,26 +138,14 @@ module "module_server_test" {
   source                    = ".//modules/ec2instance"
   ami_type                  = "ami-0989fb15ce71ba39e"
   instance_subnet           = "${aws_subnet.this.id}"
-  security_group_id         = "${[module.Security_group_EC2.Security_group_id]}"
+  security_group_id         = "${[module.security_group_ec2.sg_id]}"
   number_of_instances       = 2
   instance_name             = "Webserver"
   instance_profile          = "${aws_iam_instance_profile.this.name}" 
   script_file               = "awscli_ssm_retreiving_install.sh"
   key_pair_ssh              = "keypairssh"
-}
+  ebs_size                  = 10
 
-#creating EBS resources and attach it to the EC2 instance
-resource "aws_ebs_volume" "this" {
-  availability_zone     = var.azs
-  size                  = var.ebs_size 
-  type                  = "gp2" #general purpose
-}
-
-#creating attachment for connecting EC2 instance with EBS volume
-resource "aws_volume_attachment" "this" {
-  device_name           = "/dev/xvdh"
-  volume_id             = "${aws_ebs_volume.this.id}"
-  instance_id           = module.module_server_test.ec2_ids[0] 
 }
 
 #creating secret random password
@@ -235,7 +178,7 @@ resource "aws_secretsmanager_secret_version" "this" {
   EOF
 }
 
-module "Security_group_ELB" {
+module "security_group_for_elb" {
   source          = ".//modules/Security_group"
   vpc_id          = "${aws_vpc.this.id}"
   name_of_sg      = "Basic security group for ELB"
@@ -247,7 +190,8 @@ module "Security_group_ELB" {
 resource "aws_elb" "this" {
   name                      = "ELB"
   subnets                   = [aws_subnet.this.id]
-  source_security_group     = "Basic security group for ELB"
+  source_security_group     = module.security_group_for_elb.sg_id
+  
   listener {
     instance_port     = 80
     instance_protocol = "http"

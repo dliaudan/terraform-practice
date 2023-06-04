@@ -57,3 +57,27 @@ variable "instance_profile" {
   type        = string
   default     = ""
 }
+
+variable "azs" {
+  description = "Availability zone"
+  type        = string
+  default     = "eu-north-1a"
+}
+
+variable "volume_type" {
+  description = "Volume type of EBS"
+  type        = string
+  default     = "gp2"
+}
+
+variable "where_to_attach_disk" {
+  description = "Define path of attaching disk"
+  type        = string
+  default     = "/dev/xvdh"
+}
+
+variable "need_public_ip" {
+  description = "Define need for your instance public ip. By default, yes"
+  type        = bool
+  default     = true
+}

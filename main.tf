@@ -181,12 +181,14 @@ resource "aws_iam_instance_profile" "this" {
 #creating EC2 instance 
 module "module_server_test" {
   source                    = ".//modules/ec2instance"
+  ami_type                  = "ami-0989fb15ce71ba39e"
   instance_subnet           = "${aws_subnet.this.id}"
   security_group_id         = "${[module.Security_group_EC2.Security_group_id]}"
   number_of_instances       = 2
   instance_name             = "Webserver"
   instance_profile          = "${aws_iam_instance_profile.this.name}" 
-  script_file               = "script-docker-install-rhel.sh"
+  script_file               = "awscli_ssm_retreiving_install.sh"
+  key_pair_ssh              = "keypairssh"
 }
 
 #creating EBS resources and attach it to the EC2 instance

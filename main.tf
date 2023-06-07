@@ -69,74 +69,81 @@ resource "aws_route_table_association" "this" {
 }
 
 #creating security group
-resource "aws_security_group" "this" {
-  name        = "terraform_security_group"
-  description = "Allow 22, 80, 443 ports"
-  vpc_id      = aws_vpc.this.id
-#each ingress means one ingress rule
-  ingress {
-    description      = "HTTPS from EC2 instance"
-    from_port        = 443
-    to_port          = 443
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
+module "security_group_ec2" {
+  source          = ".//modules/Security_group"
+  vpc_id          = "${aws_vpc.this.id}"
+  name_of_sg      = "Basic security group"
+  description     = "Allows ports 22, 80 and 443" 
+  inbound_ports   = [22,80,443]
+}
 
-  ingress {
-    description      = "SSH from EC2 instance"
-    from_port        = 22
-    to_port          = 22
-    protocol         = "tcp"
-    cidr_blocks      = ["188.163.81.21/32"] #my ip address
-  }
+#creating policy for instance profile (access to secret manager)
+resource "aws_iam_policy" "this" {
+  name               = "EC2_role_for_SM"
+  path               = "/"
+  description        = "Policy for read/write data on secret manager (SM)" 
+  policy             = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": [
+                "secretsmanager:*"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ]
+}
 
-  ingress {
-    description      = "HTTP from EC2 instance"
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
+  )
+}
+#create appropriate role for ec2 instance
+resource "aws_iam_role" "this" {
+  name = "ec2_instance_sm_role_terraform"
 
-  egress {
-    from_port        = 0
-    to_port          = 0
-    protocol         = "-1"
-    cidr_blocks      = ["0.0.0.0/0"]
-  }
+  assume_role_policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [ #statement where rule is defined for allowing ec2 instance service use this role
+        {
+            "Effect": "Allow", #in effect specify wether deny or allow action
+            "Action": [  #specify action that will be allowed or denied
+                "sts:AssumeRole" #action is assuming role
+            ],
+            "Principal": { #fspecify for whom permission will be granted
+                "Service": [ #define which services will be impacted for assuming (also here can be accounts)
+                    "ec2.amazonaws.com" #especially assuming this role is allowed for ec2 instances
+                ]
+            }
+        }
+    ]
+}) #assume role defines for which subjects (accounts or instances) this role can be applied
+}
 
-  tags = {
-    Name = "terraform"
-  }
+#unite iam role and policy
+resource "aws_iam_policy_attachment" "this" {
+  name       = "ec2_attachment_SM"
+  roles      = [aws_iam_role.this.name]
+  policy_arn = aws_iam_policy.this.arn
+}
+
+resource "aws_iam_instance_profile" "this" {
+  name = "ec2_sm_profile"
+  role = aws_iam_role.this.name
 }
 
 #creating EC2 instance 
-resource "aws_instance" "web_server_test" {
-  ami                         = var.ami_type
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.this.id
-  vpc_security_group_ids      = [aws_security_group.this.id]
-  key_name                    = var.key_pair_ssh 
-  user_data                   = file("script-docker-install-rhel.sh")
-  associate_public_ip_address = true
+module "module_server_test" {
+  source                    = ".//modules/ec2instance"
+  ami_type                  = "ami-0989fb15ce71ba39e"
+  instance_subnet           = "${aws_subnet.this.id}"
+  security_group_id         = "${[module.security_group_ec2.sg_id]}"
+  number_of_instances       = 2
+  instance_name             = "Webserver"
+  instance_profile          = "${aws_iam_instance_profile.this.name}" 
+  script_file               = "awscli_ssm_retreiving_install.sh"
+  key_pair_ssh              = "keypairssh"
+  ebs_size                  = 10
 
-  tags = {
-    Name = "Terraform server"
-  }
-}
-
-#creating EBS resources and attach it to the EC2 instance
-resource "aws_ebs_volume" "this" {
-  availability_zone     = var.azs
-  size                  = var.ebs_size 
-  type                  = "gp2" #general purpose
-}
-
-#creating attachment for connecting EC2 instance with EBS volume
-resource "aws_volume_attachment" "this" {
-  device_name           = "/dev/xvdh"
-  volume_id             = "${aws_ebs_volume.this.id}"
-  instance_id           = "${aws_instance.web_server_test.id}" 
 }
 
 #creating secret random password
@@ -150,11 +157,11 @@ resource "random_password" "this" {
 
 #creating empty secret resource
 resource "aws_secretsmanager_secret" "this" {
-  name        = "secret_password_test"
-  description = "Secret password for future purposes"
+  name                    = "secret_password_test"
+  description             = "Secret password for future purposes"
   recovery_window_in_days = 0
   tags = {
-    Name      = "secret_pass"
+    Name                  = "secret_pass"
   }
 }
 
@@ -169,3 +176,41 @@ resource "aws_secretsmanager_secret_version" "this" {
   EOF
 }
 
+module "security_group_for_elb" {
+  source          = ".//modules/Security_group"
+  vpc_id          = "${aws_vpc.this.id}"
+  name_of_sg      = "Basic security group for ELB"
+  description     = "Allows ports 80 and 443" 
+  inbound_ports   = [80,443]
+}
+
+#creating classic load balancer
+resource "aws_elb" "this" {
+  name                      = "ELB"
+  subnets                   = [aws_subnet.this.id]
+  source_security_group     = module.security_group_for_elb.sg_id
+  
+  listener {
+    instance_port     = 80
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
+  }
+
+  health_check {
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 3
+    target              = "HTTP:80/"
+    interval            = 30
+  }
+
+  instances                   = [module.module_server_test.ec2_ids[0],module.module_server_test.ec2_ids[1]]
+  idle_timeout                = 400
+  connection_draining         = true
+  connection_draining_timeout = 400
+
+  tags = {
+    Name = "Classic load balancer"
+  }
+}

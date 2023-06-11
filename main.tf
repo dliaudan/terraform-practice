@@ -34,11 +34,21 @@ resource "aws_vpc" "this" {
 #create subnet for vpc
 resource "aws_subnet" "this" {
   vpc_id            = aws_vpc.this.id
-  cidr_block        = var.cidr_block
-  availability_zone = var.azs
+  cidr_block        = var.cidr_block_first
+  availability_zone = var.azs_first
 
   tags = {
-    Name = "terraform"
+    Name = "terraform-AZA"
+  }
+}
+#just for DB requirments (for now)
+resource "aws_subnet" "this_second" {
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = var.cidr_block_second
+  availability_zone = var.azs_second
+
+  tags = {
+    Name = "terraform-AZB"
   }
 }
 
@@ -91,6 +101,37 @@ resource "aws_iam_policy" "this" {
             ],
             "Effect": "Allow",
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "autoscaling:Describe*",
+                "cloudwatch:*",
+                "logs:*",
+                "sns:*",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:GetRole",
+                "oam:ListSinks"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "arn:aws:iam::*:role/aws-service-role/events.amazonaws.com/AWSServiceRoleForCloudWatchEvents*",
+            "Condition": {
+                "StringLike": {
+                    "iam:AWSServiceName": "events.amazonaws.com"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "oam:ListAttachedLinks"
+            ],
+            "Resource": "arn:aws:oam:*:*:sink/*"
         }
     ]
 }
@@ -140,7 +181,7 @@ module "module_server_test" {
   number_of_instances       = 2
   instance_name             = "Webserver"
   instance_profile          = "${aws_iam_instance_profile.this.name}" 
-  script_file               = "awscli_ssm_retreiving_install.sh"
+  script_file               = "startup_installation.sh"
   key_pair_ssh              = "keypairssh"
   ebs_size                  = 10
 
@@ -213,4 +254,32 @@ resource "aws_elb" "this" {
   tags = {
     Name = "Classic load balancer"
   }
+}
+
+#creating ALB
+resource "aws_lb" "this" {
+  name                      = "test-alb"
+  internal                  = false
+  load_balancer_type        = "application"
+  source_security_group     = module.security_group_for_elb.sg_id
+  subnets                   = [aws_subnet.this.id,aws_subnet.this_second.id,]
+
+  enable_deletion_protection = true #need to delete LB
+  access_logs {
+    bucket  = "dliaudanbukcet"
+    prefix  = "test-lb"
+    enabled = true
+  }
+
+  tags = {
+    Name = "For test"
+  }
+}
+
+resource "aws_lb_target_group" "this" {
+  name        = "tf-example-lb-alb-tg"
+  target_type = "alb"
+  port        = 80
+  protocol    = "TCP"
+  vpc_id      = aws_vpc.this.id
 }

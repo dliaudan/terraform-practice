@@ -11,13 +11,25 @@ variable "cidr" {
   default     = ""
 }
 
-variable "cidr_block" {
+variable "cidr_block_first" {
   description = "The CIDR block for the subnet. By default, you need to specify it in your variables.tfvars"
   type        = string
   default     = ""
 }
 
-variable "azs" {
+variable "cidr_block_second" {
+  description = "The CIDR block for the subnet. By default, you need to specify it in your variables.tfvars"
+  type        = string
+  default     = ""
+}
+
+variable "azs_first" {
+  description = "The Availability zone for VPC. By default, you need to specify it in your variables.tfvars"
+  type        = string
+  default     = ""
+}
+
+variable "azs_second" {
   description = "The Availability zone for VPC. By default, you need to specify it in your variables.tfvars"
   type        = string
   default     = ""

@@ -4,7 +4,7 @@
 #tested on canonical Ubuntu
 
 sudo snap install aws-cli --classic
-aws secretsmanager get-secret-value --secret-id secret_password_test --region eu-north-1 --output json > /tmp/credentials.env
+aws secretsmanager get-secret-value --secret-id ${aws_secretsmanager_secret_version.this.arn} --region eu-north-1 --output json > /tmp/credentials.env
 
 wget https://s3.amazonaws.com/amazoncloudwatch-agent/ubuntu/amd64/latest/amazon-cloudwatch-agent.deb
 sudo dpkg -i -E ./amazon-cloudwatch-agent.deb

@@ -256,30 +256,89 @@ resource "aws_elb" "this" {
   }
 }
 
-#creating ALB
+resource "aws_launch_configuration" "this" {
+  name          = var.launch_template_name
+  image_id      = var.image_id
+  instance_type = var.instance_size
+}
+
+resource "aws_autoscaling_group" "this" {
+  name                        = var.asg_name
+  max_size                    = var.maximum_instances
+  min_size                    = var.minimum_instances
+  desired_capacity            = var.desired_instances
+  force_delete                = true
+  launch_configuration        = aws_launch_configuration.this.name 
+  vpc_zone_identifier         = [aws_subnet.this.id]
+
+}
+
+resource "aws_autoscaling_policy" "this" {
+  name                        = "default_auto_scaling_policy"
+  autoscaling_group_name      = var.asg_name
+  policy_type                 = "TargetTrackingScaling"
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 40.0
+  }
+}
+
+#creating alb
 resource "aws_lb" "this" {
   name                      = "test-alb"
   internal                  = false
   load_balancer_type        = "application"
-  source_security_group     = module.security_group_for_elb.sg_id
+  security_groups           = [module.security_group_for_elb.sg_id]
   subnets                   = [aws_subnet.this.id,aws_subnet.this_second.id,]
 
-  enable_deletion_protection = true #need to delete LB
-  access_logs {
-    bucket  = "dliaudanbukcet"
-    prefix  = "test-lb"
-    enabled = true
-  }
-
+  enable_deletion_protection = false #need to delete LB
   tags = {
     Name = "For test"
   }
 }
 
+#create lb target group
 resource "aws_lb_target_group" "this" {
-  name        = "tf-example-lb-alb-tg"
-  target_type = "alb"
+  name        = "alb-test-tg"
+  target_type = "instance"
   port        = 80
-  protocol    = "TCP"
+  protocol    = "HTTP"
   vpc_id      = aws_vpc.this.id
+}
+
+#create lb listener
+resource "aws_lb_listener" "this" {
+  load_balancer_arn = aws_lb.this.arn
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this.arn
+  }
+}
+
+#attach here your asg with lb target group
+resource "aws_autoscaling_attachment" "this" {
+  autoscaling_group_name  = aws_autoscaling_group.this.name
+  lb_target_group_arn     = aws_lb_target_group.this.arn
+}
+
+resource "aws_db_instance" "this" {
+  #imported db 
+  engine                              = "mysql"
+  instance_class                      = "db.t3.micro"
+  allocated_storage                   = 20
+  max_allocated_storage               = 1000 
+  storage_encrypted                   = true
+  customer_owned_ip_enabled           = false
+  iam_database_authentication_enabled = false
+  copy_tags_to_snapshot               = true
+  skip_final_snapshot                 = true
+  username                            = "admin"
+  manage_master_user_password         = true 
+  tags = {
+
+  }
 }

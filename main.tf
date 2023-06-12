@@ -326,19 +326,8 @@ resource "aws_autoscaling_attachment" "this" {
 }
 
 resource "aws_db_instance" "this" {
-  #imported db 
+  #imported db
+  count = var.imported_identifier_db ? 1 : 0  #you will not re-create resource with this if-statement 
   engine                              = "mysql"
   instance_class                      = "db.t3.micro"
-  allocated_storage                   = 20
-  max_allocated_storage               = 1000 
-  storage_encrypted                   = true
-  customer_owned_ip_enabled           = false
-  iam_database_authentication_enabled = false
-  copy_tags_to_snapshot               = true
-  skip_final_snapshot                 = true
-  username                            = "admin"
-  manage_master_user_password         = true 
-  tags = {
-
-  }
 }

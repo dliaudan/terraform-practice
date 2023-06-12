@@ -90,3 +90,13 @@ variable "desired_instances" {
   type        = number
   default     = 0
 }
+
+#============================
+#  For imported resources   #
+#============================
+
+variable "imported_identifier_db" {
+  description = "Identifier for imported db resource. By default, you do not need to re-create resource"
+  type        = bool
+  default     = false
+}

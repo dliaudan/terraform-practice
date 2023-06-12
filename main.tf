@@ -260,6 +260,7 @@ resource "aws_launch_configuration" "this" {
   name          = var.launch_template_name
   image_id      = var.image_id
   instance_type = var.instance_size
+  user_data     = "startup_installation.sh" 
 }
 
 resource "aws_autoscaling_group" "this" {

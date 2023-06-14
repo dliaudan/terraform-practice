@@ -34,11 +34,21 @@ resource "aws_vpc" "this" {
 #create subnet for vpc
 resource "aws_subnet" "this" {
   vpc_id            = aws_vpc.this.id
-  cidr_block        = var.cidr_block
-  availability_zone = var.azs
+  cidr_block        = var.cidr_block_first
+  availability_zone = var.azs_first
 
   tags = {
-    Name = "terraform"
+    Name = "terraform-AZA"
+  }
+}
+#just for DB requirments (for now)
+resource "aws_subnet" "this_second" {
+  vpc_id            = aws_vpc.this.id
+  cidr_block        = var.cidr_block_second
+  availability_zone = var.azs_second
+
+  tags = {
+    Name = "terraform-AZB"
   }
 }
 
@@ -91,6 +101,37 @@ resource "aws_iam_policy" "this" {
             ],
             "Effect": "Allow",
             "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "autoscaling:Describe*",
+                "cloudwatch:*",
+                "logs:*",
+                "sns:*",
+                "iam:GetPolicy",
+                "iam:GetPolicyVersion",
+                "iam:GetRole",
+                "oam:ListSinks"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Effect": "Allow",
+            "Action": "iam:CreateServiceLinkedRole",
+            "Resource": "arn:aws:iam::*:role/aws-service-role/events.amazonaws.com/AWSServiceRoleForCloudWatchEvents*",
+            "Condition": {
+                "StringLike": {
+                    "iam:AWSServiceName": "events.amazonaws.com"
+                }
+            }
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "oam:ListAttachedLinks"
+            ],
+            "Resource": "arn:aws:oam:*:*:sink/*"
         }
     ]
 }
@@ -140,7 +181,7 @@ module "module_server_test" {
   number_of_instances       = 2
   instance_name             = "Webserver"
   instance_profile          = "${aws_iam_instance_profile.this.name}" 
-  script_file               = "awscli_ssm_retreiving_install.sh"
+  script_file               = "startup_installation.sh"
   key_pair_ssh              = "keypairssh"
   ebs_size                  = 10
 
@@ -213,4 +254,81 @@ resource "aws_elb" "this" {
   tags = {
     Name = "Classic load balancer"
   }
+}
+
+resource "aws_launch_configuration" "this" {
+  name          = var.launch_template_name
+  image_id      = var.image_id
+  instance_type = var.instance_size
+  user_data     = "startup_installation.sh" 
+}
+
+resource "aws_autoscaling_group" "this" {
+  name                        = var.asg_name
+  max_size                    = var.maximum_instances
+  min_size                    = var.minimum_instances
+  desired_capacity            = var.desired_instances
+  force_delete                = true
+  launch_configuration        = aws_launch_configuration.this.name 
+  vpc_zone_identifier         = [aws_subnet.this.id]
+
+}
+
+resource "aws_autoscaling_policy" "this" {
+  name                        = "default_auto_scaling_policy"
+  autoscaling_group_name      = var.asg_name
+  policy_type                 = "TargetTrackingScaling"
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = 40.0
+  }
+}
+
+#creating alb
+resource "aws_lb" "this" {
+  name                      = "test-alb"
+  internal                  = false
+  load_balancer_type        = "application"
+  security_groups           = [module.security_group_for_elb.sg_id]
+  subnets                   = [aws_subnet.this.id,aws_subnet.this_second.id,]
+
+  enable_deletion_protection = false #need to delete LB
+  tags = {
+    Name = "For test"
+  }
+}
+
+#create lb target group
+resource "aws_lb_target_group" "this" {
+  name        = "alb-test-tg"
+  target_type = "instance"
+  port        = 80
+  protocol    = "HTTP"
+  vpc_id      = aws_vpc.this.id
+}
+
+#create lb listener
+resource "aws_lb_listener" "this" {
+  load_balancer_arn = aws_lb.this.arn
+  port              = "80"
+  protocol          = "HTTP"
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.this.arn
+  }
+}
+
+#attach here your asg with lb target group
+resource "aws_autoscaling_attachment" "this" {
+  autoscaling_group_name  = aws_autoscaling_group.this.name
+  lb_target_group_arn     = aws_lb_target_group.this.arn
+}
+
+resource "aws_db_instance" "this" {
+  #imported db
+  count = var.imported_identifier_db ? 1 : 0  #you will not re-create resource with this if-statement 
+  engine                              = "mysql"
+  instance_class                      = "db.t3.micro"
 }
